@@ -30,19 +30,11 @@ static char *labels[OBJ_CLASS_NUM];
 // Ограничивает координату границами [min, max], чтобы рамка не выходила за изображение.
 inline static int clamp(float val, int min, int max) { return val > min ? (val < max ? val : max) : min; }
 
-// Внутри модели используются COCO ID классов, а наружу отдаём только два класса
-// проекта: person -> 0 и bicycle -> 1. Остальные классы отбрасываются.
+// Для стандартного COCO сохраняем исходный ID класса (0–79).
+// Некорректный ID отбрасывается.
 static int map_model_class_id(int model_class_id)
 {
-    if (model_class_id == COCO_PERSON_CLASS_ID)
-    {
-        return 0;
-    }
-    if (model_class_id == COCO_BICYCLE_CLASS_ID)
-    {
-        return 1;
-    }
-    return -1;
+    return (model_class_id >= 0 && model_class_id < OBJ_CLASS_NUM) ? model_class_id : -1;
 }
 
 static char *readLine(FILE *fp, char *buffer, int *len)

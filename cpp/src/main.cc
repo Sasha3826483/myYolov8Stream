@@ -14,9 +14,20 @@
 #define MODEL_INPUT_SIZE 640
 #define CAMERA_DEV 11
 
-// Цвет рамки для внутренних ID классов: 0 — person, 1 — bicycle.
-cv::Scalar classColorMap[2] = {cv::Scalar(255, 255, 0),
-                               cv::Scalar(0, 255, 0)};
+// Возвращает стабильный различимый цвет для любого из 80 ID классов COCO.
+static cv::Scalar classColor(int class_id)
+{
+    if (class_id < 0 || class_id >= OBJ_CLASS_NUM)
+    {
+        return cv::Scalar(255, 255, 255);
+    }
+
+    return cv::Scalar(
+        50 + (class_id * 71) % 206,
+        50 + (class_id * 139) % 206,
+        50 + (class_id * 197) % 206
+    );
+}
 
 int main(int argc, char **argv)
 {
@@ -98,7 +109,7 @@ int main(int argc, char **argv)
             printf("%s: %.2f\n", coco_cls_to_name(det_result->cls_id), det_result->prop);
 
             // Рисуем рамку на исходном кадре.
-            cv::rectangle(camFrame, r, classColorMap[det_result->cls_id], 1, 8, 0);
+            cv::rectangle(camFrame, r, classColor(det_result->cls_id), 1, 8, 0);
 
             // Формируем текст для изображения: имя класса и уверенность.
             std::string label = cv::format(
@@ -108,15 +119,16 @@ int main(int argc, char **argv)
             );
 
             // Рисуем подпись около верхнего края рамки; y не даём уйти за край кадра.
-            cv::putText(
-                camFrame,
-                label,
-                cv::Point(x1, std::max(y1 - 5, 15)),
-                cv::FONT_HERSHEY_SIMPLEX,
-                0.5,
-                classColorMap[det_result->cls_id],
-                1,
-                cv::LINE_AA
+        cv::putText(
+                camFrame,                                      // Изображение, на которое наносится текст
+                label,                                         // Текст подписи: класс и уверенность
+                cv::Point(x1, std::max(y1 - 5, 15)),           // Начало текста: x рамки и y над ней,
+                                                   // но не выше 15 пикселей от верхнего края
+                cv::FONT_HERSHEY_SIMPLEX,                      // Шрифт
+                0.5,                                           // Масштаб шрифта
+                classColor(det_result->cls_id),                // Цвет текста — такой же, как у рамки
+                1,                                             // Толщина линий текста в пикселях
+                cv::LINE_AA                                    // Сглаживание линий
             );
         }
 

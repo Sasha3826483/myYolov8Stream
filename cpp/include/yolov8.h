@@ -20,36 +20,45 @@
 #include "common.h"
 
 #if defined(RV1106_1103) 
+    // Описание DMA-буфера изображения для платформ RV1106/RV1103.
     typedef struct {
-        char *dma_buf_virt_addr;
-        int dma_buf_fd;
-        int size;
+        char *dma_buf_virt_addr; // Адрес буфера, доступный процессу CPU.
+        int dma_buf_fd;          // Дескриптор буфера для передачи драйверу/NPU.
+        int size;                // Размер буфера в байтах.
     }rknn_dma_buf;
 #endif
 
+// Контекст приложения для работы с RKNN-моделью YOLOv8.
+// Инициализируется init_yolov8_model() и затем передаётся функциям инференса
+// и постобработки, чтобы они могли использовать общие ресурсы модели.
 typedef struct {
-    rknn_context rknn_ctx;
-    rknn_input_output_num io_num;
-    rknn_tensor_attr* input_attrs;
-    rknn_tensor_attr* output_attrs;
+    rknn_context rknn_ctx;                 // Основной дескриптор RKNN-модели/NPU.
+    rknn_input_output_num io_num;          // Количество входных и выходных тензоров.
+    rknn_tensor_attr* input_attrs;         // Метаданные входных тензоров модели.
+    rknn_tensor_attr* output_attrs;        // Метаданные выходных тензоров модели.
 #if defined(RV1106_1103) 
-    rknn_tensor_mem* input_mems[1];
-    rknn_tensor_mem* output_mems[9];
-    rknn_dma_buf img_dma_buf;
+    rknn_tensor_mem* input_mems[1];        // Выделенная память входного тензора.
+    rknn_tensor_mem* output_mems[9];       // Выделенная память выходных тензоров.
+    rknn_dma_buf img_dma_buf;              // DMA-буфер для изображения на этой платформе.
 #endif
-    int model_channel;
-    int model_width;
-    int model_height;
-    bool is_quant;
+    int model_channel;                     // Число каналов входного изображения.
+    int model_width;                       // Ширина входа модели в пикселях.
+    int model_height;                      // Высота входа модели в пикселях.
+    bool is_quant;                         // true, если выходы модели квантизованы.
 } rknn_app_context_t;
 
 #include "postprocess.h"
 
 
+// Загружает модель из файла и подготавливает контекст, атрибуты и буферы RKNN.
+// Возвращает код результата; app_ctx заполняется при успешной инициализации.
 int init_yolov8_model(const char* model_path, rknn_app_context_t* app_ctx);
 
+// Освобождает созданные для модели ресурсы и сбрасывает связанные данные контекста.
 int release_yolov8_model(rknn_app_context_t* app_ctx);
 
+// Выполняет полный цикл инференса для изображения и записывает найденные объекты
+// в od_results. Возвращает код результата выполнения.
 int inference_yolov8_model(rknn_app_context_t* app_ctx, image_buffer_t *img,  object_detect_result_list* od_results);
 
 #endif //_RKNN_DEMO_YOLOV8_H_
